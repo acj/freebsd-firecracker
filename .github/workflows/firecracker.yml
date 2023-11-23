@@ -1,0 +1,44 @@
+name: Build Firecracker
+
+on:
+  push:
+      tags:
+      - v*
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Display CPU info
+        run: lscpu
+
+      - name: Check KVM support
+        run: |
+          lsmod | grep kvm
+          sudo setfacl -m u:${USER}:rw /dev/kvm
+          [ -r /dev/kvm ] && [ -w /dev/kvm ] && echo "OK" || echo "FAIL"
+      
+      - name: Build Firecracker
+        run: |
+          git clone https://github.com/firecracker-microvm/firecracker
+          cd firecracker
+          git checkout feature/pvh
+
+          #sudo tools/devtool checkenv
+
+          sudo tools/devtool -y build --release
+          sudo mv ./build/cargo_target/$(uname -m)-unknown-linux-musl/release/firecracker firecracker
+          sudo chown $USER:$USER firecracker
+
+          ./firecracker --version
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: firecracker
+          path: firecracker/firecracker
