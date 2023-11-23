@@ -18,13 +18,12 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: <<~SHELL
       set -e
 
-      pw groupmod wheel -m vagrant
+      pkg install -y git sudo
 
-      pkg install -y git
+      echo 'vagrant ALL=(ALL) NOPASSWD: ALL' > /usr/local/etc/sudoers.d/vagrant
+      pw groupmod wheel -m vagrant      
 
-      su -l vagrant <<'EOF'
-      git clone --depth 1 https://git.freebsd.org/src.git /vagrant/src
-      EOF
+      git clone --depth 1 https://git.freebsd.org/src.git /usr/src
     SHELL
   end
   
