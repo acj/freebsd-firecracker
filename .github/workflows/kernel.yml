@@ -2,8 +2,9 @@ name: Build FreeBSD Kernel
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - v*
+  workflow_dispatch:
 
 jobs:
   build:
