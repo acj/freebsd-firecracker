@@ -19,6 +19,7 @@ jobs:
 
       - name: Install VM tools
         run: |
+          sudo apt-get update
           sudo apt-get install -qq -o=Dpkg::Use-Pty=0 moreutils
           sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant virtualbox qemu libvirt-daemon-system
     
