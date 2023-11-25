@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+
+jobs:
+  # https://github.com/firecracker-microvm/firecracker/commit/30af4758dafa7eea89ba5ed7071f28e6c1f11f96
+  kernel:
+    name: Build Kernel
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Display CPU info
+        run: lscpu
+
+      - name: Install VM tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qq -o=Dpkg::Use-Pty=0 moreutils
+          sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant virtualbox qemu libvirt-daemon-system
+    
+      - name: Set up VM
+        shell: sudo bash {0}
+        run: |
+          vagrant plugin install vagrant-libvirt
+          vagrant plugin install vagrant-scp
+
+          vagrant status
+          vagrant up --no-tty --provider libvirt
+
+          df -h
+          vagrant ssh fbsd -- du -hs /vagrant
+      
+      - name: make buildworld
+        shell: sudo bash {0}
+        run: |
+          vagrant ssh fbsd -- bash /vagrant/buildworld.sh
+          df -h
+
+      - name: make buildkernel
+        shell: sudo bash {0}
+        run: |
+          vagrant ssh fbsd -- bash /vagrant/buildkernel.sh
+          df -h
+
+      - name: Copy kernel artifacts
+        shell: sudo bash {0}
+        run: |
+          vagrant scp fbsd:/vagrant/freebsd-kern.bin freebsd-kern.bin
+          vagrant scp fbsd:/vagrant/freebsd-rootfs.bin freebsd-rootfs.bin
+
+      - name: Archive kernel artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: freebsd-kern.bin
+          path: freebsd-kern.bin
+    
+      - name: Archive rootfs artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: freebsd-rootfs.bin
+          path: freebsd-rootfs.bin
+  
+  # https://github.com/firecracker-microvm/firecracker/blob/feature/pvh/docs/getting-started.md
+  firecracker:
+    name: Build Firecracker
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Display CPU info
+        run: lscpu
+
+      - name: Enable KVM for GHA user
+        run: sudo setfacl -m u:${USER}:rw /dev/kvm
+
+      - name: Check KVM support
+        run: |
+          lsmod | grep kvm
+          [ -r /dev/kvm ] && [ -w /dev/kvm ] && echo "OK" || echo "FAIL"
+      
+      - name: Build Firecracker
+        shell: sudo bash {0}
+        run: |
+          git clone https://github.com/firecracker-microvm/firecracker
+          cd firecracker
+          git checkout feature/pvh
+
+          tools/devtool checkenv
+
+          tools/devtool -y build --release
+          mv ./build/cargo_target/$(uname -m)-unknown-linux-musl/release/firecracker firecracker
+
+          ./firecracker --version
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: firecracker
+          path: firecracker/firecracker
