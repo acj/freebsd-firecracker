@@ -20,13 +20,15 @@ jobs:
         run: lscpu
 
       - name: Install VM tools
+        
+        shell: sudo bash -e {0}
         run: |
           sudo apt-get update
           sudo apt-get install -qq -o=Dpkg::Use-Pty=0 moreutils
           sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant virtualbox qemu libvirt-daemon-system
     
       - name: Set up VM
-        shell: sudo bash {0}
+        shell: sudo bash -e {0}
         run: |
           vagrant plugin install vagrant-libvirt
           vagrant plugin install vagrant-scp
@@ -38,19 +40,20 @@ jobs:
           vagrant ssh fbsd -- du -hs /vagrant
       
       - name: make buildworld
-        shell: sudo bash {0}
+        shell: sudo bash -e {0}
         run: |
+          set -e
           vagrant ssh fbsd -- bash /vagrant/buildworld.sh
           df -h
 
       - name: make buildkernel
-        shell: sudo bash {0}
+        shell: sudo bash -e {0}
         run: |
           vagrant ssh fbsd -- bash /vagrant/buildkernel.sh
           df -h
 
       - name: Copy kernel artifacts
-        shell: sudo bash {0}
+        shell: sudo bash -e {0}
         run: |
           vagrant scp fbsd:/vagrant/freebsd-kern.bin freebsd-kern.bin
           vagrant scp fbsd:/vagrant/freebsd-rootfs.bin freebsd-rootfs.bin
@@ -80,7 +83,8 @@ jobs:
         run: lscpu
 
       - name: Enable KVM for GHA user
-        run: sudo setfacl -m u:${USER}:rw /dev/kvm
+        shell: sudo bash -e {0}
+        run: setfacl -m u:${USER}:rw /dev/kvm
 
       - name: Check KVM support
         run: |
@@ -88,7 +92,7 @@ jobs:
           [ -r /dev/kvm ] && [ -w /dev/kvm ] && echo "OK" || echo "FAIL"
       
       - name: Build Firecracker
-        shell: sudo bash {0}
+        shell: sudo bash -e {0}
         run: |
           git clone https://github.com/firecracker-microvm/firecracker
           cd firecracker
