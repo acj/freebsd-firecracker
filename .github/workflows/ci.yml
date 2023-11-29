@@ -43,13 +43,13 @@ jobs:
         shell: sudo bash -e {0}
         run: |
           set -e
-          vagrant ssh fbsd -- bash /vagrant/buildworld.sh
+          vagrant ssh fbsd -- sudo /vagrant/buildworld.sh
           df -h
 
       - name: make buildkernel
         shell: sudo bash -e {0}
         run: |
-          vagrant ssh fbsd -- bash /vagrant/buildkernel.sh
+          vagrant ssh fbsd -- sudo /vagrant/buildkernel.sh
           df -h
 
       - name: Copy kernel artifacts
