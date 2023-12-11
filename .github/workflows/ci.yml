@@ -107,9 +107,8 @@ jobs:
       - name: Build Firecracker
         shell: sudo bash -e {0}
         run: |
-          git clone https://github.com/firecracker-microvm/firecracker
+          git clone --quiet --depth=1 --branch=feature/pvh https://github.com/firecracker-microvm/firecracker
           cd firecracker
-          git checkout feature/pvh
 
           patch -p1 < ../firecracker-mtu-9000.patch
 
