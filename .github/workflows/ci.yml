@@ -105,6 +105,8 @@ jobs:
           cd firecracker
           git checkout feature/pvh
 
+          patch -p1 < ../firecracker-mtu-9000.patch
+
           tools/devtool checkenv
 
           tools/devtool -y build --release

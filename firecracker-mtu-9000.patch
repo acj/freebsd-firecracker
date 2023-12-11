@@ -1,0 +1,15 @@
+# This is a workaround for Firecracker errors when transferring more than a tiny (~2KB) amount of data over the network. The error is:
+#
+# [anonymous-instance:main:WARN:src/vmm/src/devices/virtio/net/device.rs:366] Receiving buffer is too small to hold frame of current size
+
+--- a/src/vmm/src/devices/virtio/net/mod.rs
++++ b/src/vmm/src/devices/virtio/net/mod.rs
+@@ -8,7 +8,7 @@ use std::io;
+ use crate::devices::virtio::FIRECRACKER_MAX_QUEUE_SIZE;
+
+ /// Maximum size of the frame buffers handled by this device.
+-pub const MAX_BUFFER_SIZE: usize = 65562;
++pub const MAX_BUFFER_SIZE: usize = 9000;
+ /// The number of queues of the network device.
+ pub const NET_NUM_QUEUES: usize = 2;
+ pub const NET_QUEUE_SIZES: [u16; NET_NUM_QUEUES] = [FIRECRACKER_MAX_QUEUE_SIZE; NET_NUM_QUEUES];
