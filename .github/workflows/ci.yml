@@ -59,6 +59,12 @@ jobs:
           vagrant ssh fbsd -- sudo /vagrant/buildkernel.sh
           df -h
 
+      - name: Prepare rootfs
+        shell: sudo bash -e {0}
+        run: |
+          vagrant ssh fbsd -- sudo /vagrant/prepare-rootfs.sh
+          df -h
+
       - name: Copy kernel artifacts
         shell: sudo bash -e {0}
         run: |
