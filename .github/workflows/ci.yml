@@ -42,6 +42,10 @@ jobs:
           df -h
           vagrant ssh fbsd -- du -hs /vagrant
       
+      - name: Apply src patches
+        shell: sudo bash -e {0}
+        run: vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-amd-tsc-init.patch'
+
       - name: make buildworld
         shell: sudo bash -e {0}
         run: |

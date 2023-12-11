@@ -1,0 +1,17 @@
+The FreeBSD kernel code that probes for the timestamp counter (TSC) frequency doesn't currently
+work for AMD CPUs. It seems to be corrected later in the boot process, so we provide a dummy value
+and skip over it here. Without this patch, the kernel will panic when running under Firecracker
+with the error "TSC not initialized".
+
+--- sys/x86/x86/tsc.c
++++ sys/x86/x86/tsc.c
+@@ -414,6 +414,9 @@ probe_tsc_freq_late(void)
+ 				printf(
+ 		    "Early TSC frequency %juHz derived from brand string\n",
+ 				    (uintmax_t)tsc_freq);
++		} else if (cpu_vendor_id == CPU_VENDOR_AMD) {
++			printf("Enabling workaround for Firecracker on AMD CPUs\n");
++			tsc_freq = 1;
+ 		} else {
+ 			tsc_disabled = 1;
+ 		}
