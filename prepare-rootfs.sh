@@ -36,3 +36,5 @@ du -hs $dest_dir/*
 
 umount $dest_dir
 mdconfig -d -u 0
+
+tar cjf freebsd-rootfs.tar.bz2 freebsd-rootfs.bin

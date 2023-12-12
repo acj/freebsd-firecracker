@@ -62,7 +62,7 @@ jobs:
         shell: sudo bash -e {0}
         run: |
           vagrant scp fbsd:/vagrant/freebsd-kern.bin freebsd-kern.bin
-          vagrant scp fbsd:/vagrant/freebsd-rootfs.bin freebsd-rootfs.bin
+          vagrant scp fbsd:/vagrant/freebsd-rootfs.tar.bz2 freebsd-rootfs.tar.bz2
 
       - name: Archive kernel artifact
         uses: actions/upload-artifact@v3
@@ -73,8 +73,8 @@ jobs:
       - name: Archive rootfs artifact
         uses: actions/upload-artifact@v3
         with:
-          name: freebsd-rootfs.bin
-          path: freebsd-rootfs.bin
+          name: freebsd-rootfs.tar.bz2
+          path: freebsd-rootfs.tar.bz2
   
   # https://github.com/firecracker-microvm/firecracker/blob/feature/pvh/docs/getting-started.md
   firecracker:
@@ -140,8 +140,8 @@ jobs:
       - name: Download rootfs artifact
         uses: actions/download-artifact@v3
         with:
-          name: freebsd-rootfs.bin
-          path: freebsd-rootfs.bin
+          name: freebsd-rootfs.tar.bz2
+          path: freebsd-rootfs.tar.bz2
 
       - uses: marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0 # v1.1.1
         with:
@@ -151,4 +151,4 @@ jobs:
           files: |
             firecracker
             freebsd-kern.bin
-            freebsd-rootfs.bin
+            freebsd-rootfs.tar.bz2
