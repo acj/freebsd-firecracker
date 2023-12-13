@@ -23,13 +23,25 @@ jobs:
         run: lscpu
 
       - name: Install VM tools
-        
         shell: sudo bash -e {0}
         run: |
           sudo apt-get update
           sudo apt-get install -qq -o=Dpkg::Use-Pty=0 moreutils
           sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant virtualbox qemu libvirt-daemon-system
-    
+
+      - name: Clear additional space on runner
+        run: |
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo rm -rf /var/cache/apt/archives/*
+          sudo rm -rf /usr/share/doc/*
+
+          # https://github.com/actions/runner-images/issues/2840
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - name: Set up VM
         shell: sudo bash -e {0}
         run: |
