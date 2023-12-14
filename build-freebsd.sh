@@ -4,12 +4,73 @@ set -e
 
 cd /vagrant
 
+cat <<'END' > /usr/src/release/Makefile.firecracker
+#
+# Makefile for creating FreeBSD/Firecracker artifacts
+#
+
+CLEANDIRS+=	${TARGET}/firecracker-kern ${TARGET}/firecracker-world
+
+# Bits related to hardware which won't exist in a VM.
+WITHOUT_VM_ENOENT=WITHOUT_APM=YES WITHOUT_BLUETOOTH=YES WITHOUT_CXGBETOOL=YES \
+    WITHOUT_FLOPPY=YES WITHOUT_GPIO=YES WITHOUT_MLX5TOOL=YES WITHOUT_USB=YES \
+    WITHOUT_USB_GADGET_EXAMPLES=YES WITHOUT_VT=YES WITHOUT_WIRELESS=YES
+# Bits related to software which doesn't exist in Firecracker specifically.
+WITHOUT_FC_ENOENT=WITHOUT_ACPI=YES WITHOUT_BOOT=YES WITHOUT_BHYVE=YES \
+    WITHOUT_EFI=YES WITHOUT_FDT=YES WITHOUT_HYPERV=YES \
+    WITHOUT_LEGACY_CONSOLE=YES WITHOUT_SYSCONS=YES
+# Bits which take up a lot of space and probably won't be wanted inside a
+# Firecracker VM.
+WITHOUT_FC_FEATURES=WITHOUT_DEBUG_FILES=YES WITHOUT_TESTS=YES
+# All the excluded bits
+WITHOUTS?=${WITHOUT_VM_ENOENT} ${WITHOUT_FC_ENOENT} ${WITHOUT_FC_FEATURES}
+
+firecracker:	firecracker-freebsd-kern.bin firecracker-freebsd-rootfs.bin
+
+FCKDIR=	${.OBJDIR}/${TARGET}/firecracker-kern
+firecracker-freebsd-kern.bin:
+.if !defined(DESTDIR) || !exists(${DESTDIR})
+	@echo "--------------------------------------------------------------"
+	@echo ">>> DESTDIR must point to destination for Firecracker binaries"
+	@echo "--------------------------------------------------------------"
+	@false
+.endif
+	mkdir -p ${FCKDIR}
+	${MAKE} -C ${WORLDDIR} DESTDIR=${FCKDIR} \
+	    KERNCONF=FIRECRACKER TARGET=${TARGET} installkernel
+	cp ${FCKDIR}/boot/kernel/kernel ${DESTDIR}/freebsd-kern.bin
+
+FCWDIR=	${.OBJDIR}/${TARGET}/firecracker-world
+FCROOTFSSZ?=	8g
+firecracker-freebsd-rootfs.bin:
+	mkdir -p ${FCWDIR}
+	${MAKE} -C ${WORLDDIR} DESTDIR=${FCWDIR} \
+	    ${WITHOUTS} TARGET=${TARGET} installworld distribution distrib-dirs
+	echo '/dev/ufs/rootfs / ufs rw 1 1' > ${FCWDIR}/etc/fstab
+	echo 'hostname="freebsd"' >> ${FCWDIR}/etc/rc.conf
+	echo 'ifconfig_vtnet0="inet 172.16.0.2 netmask 255.255.255.0 mtu 9000"' >> ${FCWDIR}/etc/rc.conf
+	echo 'defaultrouter="172.16.0.1"' >> ${FCWDIR}/etc/rc.conf
+	echo 'sshd_enable="YES"' >> ${FCWDIR}/etc/rc.conf
+	echo 'sshd_rsa_enable="NO"' >> ${FCWDIR}/etc/rc.conf
+	echo 'growfs_enable="YES"' >> ${FCWDIR}/etc/rc.conf
+	echo 'nameserver 8.8.8.8' >> ${FCWDIR}/etc/resolv.conf
+	sed -i '' -e '/periodic/s/^/#/' ${FCWDIR}/etc/crontab
+	pw -R ${FCWDIR} groupadd freebsd -g 1001
+	mkdir -p ${FCWDIR}/home/freebsd
+	pw -R ${FCWDIR} useradd freebsd -m -M 0755 -w yes -n freebsd \
+	    -u 1001 -g 1001 -G 0 -c "FreeBSD User" -d /home/freebsd -s /bin/sh
+	pw -R ${FCWDIR} usermod root -w yes
+	touch ${FCWDIR}/firstboot
+	makefs -s ${FCROOTFSSZ} -o label=rootfs -o version=2 -o softupdates=1 \
+	    ${DESTDIR}/freebsd-rootfs.bin ${FCWDIR}
+END
+
 # Without this, we end up at the mountroot prompt when booting the VM
 cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
-make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld buildkernel KERNCONF=FIRECRACKER FCROOTFSSZ=8g
-make -C /usr/src/release firecracker DESTDIR=$(pwd) FCROOTFSSZ=8g
+make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld buildkernel KERNCONF=FIRECRACKER
+make -C /usr/src/release firecracker DESTDIR=$(pwd)
 
 chown -R vagrant:vagrant $(pwd)
