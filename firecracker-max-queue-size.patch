@@ -1,0 +1,11 @@
+# This is a workaround for extremely low throughput when communicating with some hosts. It
+# seems to affect connections to remote FreeBSD hosts most of all.
+
+--- a/src/vmm/src/devices/virtio/queue.rs
++++ b/src/vmm/src/devices/virtio/queue.rs
+@@ -18,7 +18,7 @@ pub(super) const VIRTQ_DESC_F_NEXT: u16 = 0x1;
+ pub(super) const VIRTQ_DESC_F_WRITE: u16 = 0x2;
+
+ /// Max size of virtio queues offered by firecracker's virtio devices.
+-pub(super) const FIRECRACKER_MAX_QUEUE_SIZE: u16 = 256;
++pub(super) const FIRECRACKER_MAX_QUEUE_SIZE: u16 = 4096;

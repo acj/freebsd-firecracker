@@ -116,6 +116,7 @@ jobs:
           cd firecracker
 
           patch -p1 < ../firecracker-mtu-9000.patch
+          patch -p1 < ../firecracker-max-queue-size.patch
 
           tools/devtool checkenv
 
