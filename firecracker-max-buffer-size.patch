@@ -9,7 +9,7 @@
 
  /// Maximum size of the frame buffers handled by this device.
 -pub const MAX_BUFFER_SIZE: usize = 65562;
-+pub const MAX_BUFFER_SIZE: usize = 9000;
++pub const MAX_BUFFER_SIZE: usize = 16384;
  /// The number of queues of the network device.
  pub const NET_NUM_QUEUES: usize = 2;
  pub const NET_QUEUE_SIZES: [u16; NET_NUM_QUEUES] = [FIRECRACKER_MAX_QUEUE_SIZE; NET_NUM_QUEUES];

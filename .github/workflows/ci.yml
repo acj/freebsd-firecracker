@@ -117,7 +117,7 @@ jobs:
           git clone --quiet --depth=1 --branch=feature/pvh https://github.com/firecracker-microvm/firecracker
           cd firecracker
 
-          patch -p1 < ../firecracker-mtu-9000.patch
+          patch -p1 < ../firecracker-max-buffer-size.patch
           patch -p1 < ../firecracker-max-queue-size.patch
 
           tools/devtool checkenv
