@@ -25,6 +25,8 @@ sed -i '' 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' $dest_dir/etc/
 # Enable sudo for users in wheel group
 sed -i '' 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' $dest_dir/usr/local/etc/sudoers
 
+echo "" > $dest_dir/etc/motd
+
 du -hs $dest_dir/*
 
 umount $dest_dir
