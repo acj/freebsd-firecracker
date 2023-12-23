@@ -13,7 +13,7 @@ ls -l $dest_dir
 
 # Install basic packages
 ASSUME_ALWAYS_YES=YES pkg -c /mnt bootstrap -f || true
-ASSUME_ALWAYS_YES=YES pkg -c /mnt install -y sudo bash wget curl
+ASSUME_ALWAYS_YES=YES pkg -c /mnt install -y sudo bash wget curl git llvm
 
 # SSH setup. Allow access to root using the key from this repo
 mkdir -p $dest_dir/root/.ssh
