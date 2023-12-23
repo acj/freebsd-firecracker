@@ -56,7 +56,9 @@ jobs:
       
       - name: Apply src patches
         shell: sudo bash -e {0}
-        run: vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-amd-tsc-init.patch'
+        run: |
+          vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-amd-tsc-init.patch'
+          vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-rx-buf-size.patch'
 
       - name: Build FreeBSD rootfs and kernel
         shell: sudo bash -e {0}
