@@ -19,6 +19,7 @@ sed -i '' 's/#PermitRootLogin no/PermitRootLogin yes/' $dest_dir/etc/ssh/sshd_co
 sed -i '' 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' $dest_dir/etc/ssh/sshd_config
 
 echo "" > $dest_dir/etc/motd
+echo "" > $dest_dir/etc/motd.template
 
 du -hs $dest_dir/*
 
