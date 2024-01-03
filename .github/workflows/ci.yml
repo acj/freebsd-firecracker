@@ -58,7 +58,6 @@ jobs:
         shell: sudo bash -e {0}
         run: |
           vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-amd-tsc-init.patch'
-          vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-rx-buf-size.patch'
 
       - name: Build FreeBSD rootfs and kernel
         shell: sudo bash -e {0}
@@ -116,9 +115,6 @@ jobs:
         run: |
           git clone --quiet --depth=1 --branch=feature/pvh https://github.com/firecracker-microvm/firecracker
           cd firecracker
-
-          patch -p1 < ../firecracker-max-buffer-size.patch
-          patch -p1 < ../firecracker-max-queue-size.patch
 
           tools/devtool checkenv
 

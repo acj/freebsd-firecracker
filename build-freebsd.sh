@@ -148,7 +148,7 @@ firecracker-freebsd-rootfs.bin:
 	    ${WITHOUTS} TARGET=${TARGET} installworld distribution distrib-dirs
 	echo '/dev/ufs/rootfs / ufs rw 1 1' > ${FCWDIR}/etc/fstab
 	echo 'hostname="freebsd"' >> ${FCWDIR}/etc/rc.conf
-	echo 'ifconfig_vtnet0="inet 172.16.0.2 netmask 255.255.255.0 mtu 16384"' >> ${FCWDIR}/etc/rc.conf
+	echo 'ifconfig_vtnet0="inet 172.16.0.2 netmask 255.255.255.0"' >> ${FCWDIR}/etc/rc.conf
 	echo 'defaultrouter="172.16.0.1"' >> ${FCWDIR}/etc/rc.conf
 	echo 'sshd_enable="YES"' >> ${FCWDIR}/etc/rc.conf
 	echo 'sshd_rsa_enable="NO"' >> ${FCWDIR}/etc/rc.conf
