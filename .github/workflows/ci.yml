@@ -113,7 +113,7 @@ jobs:
       - name: Build Firecracker
         shell: sudo bash -e {0}
         run: |
-          git clone --quiet --depth=1 --branch=feature/pvh https://github.com/firecracker-microvm/firecracker
+          git clone --quiet --depth=1 --branch=feature/pvh https://github.com/acj/firecracker
           cd firecracker
 
           tools/devtool checkenv
