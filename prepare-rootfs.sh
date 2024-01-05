@@ -11,6 +11,10 @@ mount -t ufs /dev/md0 $dest_dir
 echo "Contents:"
 ls -l $dest_dir
 
+# Install basic packages
+ASSUME_ALWAYS_YES=YES pkg -c $dest_dir bootstrap -f || true
+ASSUME_ALWAYS_YES=YES pkg -c $dest_dir install -y rsync
+
 # SSH setup. Allow access to root using the key from this repo
 mkdir -p $dest_dir/root/.ssh
 chmod 700 $dest_dir/root/.ssh
