@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Display CPU info
         run: lscpu
@@ -78,13 +78,13 @@ jobs:
           vagrant scp fbsd:/vagrant/freebsd-rootfs.bin.xz freebsd-rootfs.bin.xz
 
       - name: Archive kernel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: freebsd-kern.bin
           path: freebsd-kern.bin
     
       - name: Archive rootfs artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: freebsd-rootfs.bin.xz
           path: freebsd-rootfs.bin.xz
@@ -96,7 +96,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Display CPU info
         run: lscpu
@@ -124,7 +124,7 @@ jobs:
           ./firecracker --version
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firecracker
           path: firecracker/firecracker
@@ -134,16 +134,16 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Archive SSH public key
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: freebsd.id_rsa.pub
           path: freebsd.id_rsa.pub
         
       - name: Archive SSH private key
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: freebsd.id_rsa
           path: freebsd.id_rsa
@@ -154,7 +154,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@984d158d699777abbaa79de23de3134e60c187fa # stable branch
@@ -165,7 +165,7 @@ jobs:
           cargo build --release
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cross
           path: target/release/cross
@@ -178,37 +178,37 @@ jobs:
 
     steps:
       - name: Download cross artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: cross
           path: cross
       
       - name: Download firecracker artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: firecracker
           path: firecracker
       
       - name: Download kernel artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: freebsd-kern.bin
           path: freebsd-kern.bin
 
       - name: Download rootfs artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: freebsd-rootfs.bin.xz
           path: freebsd-rootfs.bin.xz
 
       - name: Download SSH public key
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: freebsd.id_rsa.pub
           path: freebsd.id_rsa.pub
 
       - name: Download SSH private key
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: freebsd.id_rsa
           path: freebsd.id_rsa
