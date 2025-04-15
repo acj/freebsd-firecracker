@@ -170,7 +170,7 @@ cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
-make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld buildkernel KERNCONF=FIRECRACKER
+make CXX=clang++ -j$(sysctl -n hw.ncpu) -C /usr/src buildworld buildkernel KERNCONF=FIRECRACKER
 make -C /usr/src/release firecracker DESTDIR=$(pwd)
 
 chown -R vagrant:vagrant $(pwd)
