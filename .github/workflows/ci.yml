@@ -30,7 +30,7 @@ jobs:
 
           sudo apt-get update
           sudo apt-get install -qq -o=Dpkg::Use-Pty=0 moreutils
-          sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant virtualbox qemu libvirt-daemon-system
+          sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant virtualbox qemu-system-x86 libvirt-daemon-system libvirt-dev
 
       - name: Clear additional space on runner
         run: |
