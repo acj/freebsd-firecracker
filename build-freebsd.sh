@@ -2,7 +2,7 @@
 
 set -e
 
-cd /vagrant
+mkdir -p /usr/src/release
 
 cat <<END > /etc/src.conf
 WITHOUT_ACCT=YES
@@ -171,13 +171,14 @@ options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
 echo $PATH
-export PATH="/usr/local/llvm17/bin:$PATH"
 clang --version
 clang++ --version
-export CC=/usr/local/llvm17/bin/clang
-export CXX=/usr/local/llvm17/bin/clang++
 
-make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld buildkernel KERNCONF=FIRECRACKER
+(cd /usr/src && patch -p1 < /workspace/freebsd-amd-tsc-init.patch && patch -p1 < /workspace/mptable.patch)
+
+mkdir -p /usr/obj
+
+export XCC=clang XCXX=clang++ XCPP=clang-cpp-18 XLD=ld
+/usr/src/tools/build/make.py -j 8 buildworld buildkernel KERNCONF=FIRECRACKER TARGET=amd64 TARGET_ARCH=amd64
+
 make -C /usr/src/release firecracker DESTDIR=$(pwd)
-
-chown -R vagrant:vagrant $(pwd)

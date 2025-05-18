@@ -3,8 +3,8 @@ work for AMD CPUs. It seems to be corrected later in the boot process, so we pro
 and skip over it here. Without this patch, the kernel will panic when running under Firecracker
 with the error "TSC not initialized".
 
---- sys/x86/x86/tsc.c
-+++ sys/x86/x86/tsc.c
+--- a/sys/x86/x86/tsc.c
++++ b/sys/x86/x86/tsc.c
 @@ -414,6 +414,9 @@ probe_tsc_freq_late(void)
  				printf(
  		    "Early TSC frequency %juHz derived from brand string\n",

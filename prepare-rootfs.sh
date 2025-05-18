@@ -2,8 +2,6 @@
 
 set -e
 
-cd /vagrant
-
 dest_dir="/mnt"
 mdconfig -f freebsd-rootfs.bin -u 0
 mount -t ufs /dev/md0 $dest_dir
