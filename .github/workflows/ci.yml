@@ -61,6 +61,7 @@ jobs:
         shell: sudo bash -e {0}
         run: |
           vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-amd-tsc-init.patch'
+          vagrant ssh fbsd -- 'sudo patch -d /usr/src < /vagrant/freebsd-mptables.patch'
 
       - name: Build FreeBSD rootfs and kernel
         shell: sudo bash -e {0}

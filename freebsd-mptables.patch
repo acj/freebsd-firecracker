@@ -1,0 +1,20 @@
+Workaround for "panic: mptable_walk_table: Unknown MP Config Entry 68" during Firecracker boot
+
+--- sys/x86/x86/mptable.c
++++ sys/x86/x86/mptable.c
+@@ -260,6 +260,7 @@ compute_entry_count(void)
+ 		case MPCT_ENTRY_BUS:
+ 		case MPCT_ENTRY_INT:
+ 		case MPCT_ENTRY_LOCAL_INT:
++		case 0x44:
+ 			break;
+ 		default:
+ 			panic("%s: Unknown MP Config Entry %d\n", __func__,
+@@ -494,6 +495,7 @@ mptable_walk_table(mptable_entry_handler *handler, void *arg)
+ 		case MPCT_ENTRY_BUS:
+ 		case MPCT_ENTRY_INT:
+ 		case MPCT_ENTRY_LOCAL_INT:
++		case 0x44:
+ 			break;
+ 		default:
+ 			panic("%s: Unknown MP Config Entry %d\n", __func__,
