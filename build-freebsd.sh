@@ -84,11 +84,12 @@ cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
-export CC=clang
-export CXX=clang++
-export CPP=clang-cpp
-export LD=ld.lld
-export LLVM_VERSION=18
+export LLVM_VERSION="18"
+export LLVM_BIN_DIR="/usr/local/llvm${LLVM_VERSION}/bin"
+export CC="${LLVM_BIN_DIR}/clang"
+export CXX="${LLVM_BIN_DIR}/clang++"
+export CPP="${LLVM_BIN_DIR}/clang-cpp"
+export LD="${LLVM_BIN_DIR}/ld.lld"
 export PATH="/usr/local/llvm${LLVM_VERSION}/bin:$PATH"
 
 echo "LLVM version is $LLVM_VERSION"
