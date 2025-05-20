@@ -170,6 +170,13 @@ cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
+export LLVM_VERSION="18"
+export LLVM_BIN_DIR="/usr/local/llvm${LLVM_VERSION}/bin"
+export CC="${LLVM_BIN_DIR}/clang"
+export CXX="${LLVM_BIN_DIR}/clang++"
+export CPP="${LLVM_BIN_DIR}/clang-cpp"
+export LD="${LLVM_BIN_DIR}/ld.lld"
+export PATH="/usr/local/llvm${LLVM_VERSION}/bin:$PATH"
 make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld buildkernel KERNCONF=FIRECRACKER
 make -C /usr/src/release firecracker DESTDIR=$(pwd)
 
