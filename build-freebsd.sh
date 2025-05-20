@@ -84,12 +84,19 @@ cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
-export LLVM_VERSION=18
 export CC=clang
 export CXX=clang++
 export CPP=clang-cpp
 export LD=ld.lld
+export LLVM_VERSION=18
 export PATH="/usr/local/llvm${LLVM_VERSION}/bin:$PATH"
+
+echo "LLVM version is $LLVM_VERSION"
+echo "CC at $(which $CC) is $($CC --version)"
+echo "CXX at $(which $CXX) is $($CXX --version)"
+echo "CPP at $(which $CPP) is $($CPP --version)"
+echo "LD at $(which $LD) is $($LD --version)"
+echo "PATH is $PATH"
 
 make -j$(sysctl -n hw.ncpu) -C /usr/src kernel-toolchain KERNCONF=FIRECRACKER
 
