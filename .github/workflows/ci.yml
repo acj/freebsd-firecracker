@@ -12,7 +12,7 @@ permissions:
 jobs:
   # https://github.com/firecracker-microvm/firecracker/commit/30af4758dafa7eea89ba5ed7071f28e6c1f11f96
   kernel:
-    name: Build Kernel
+    name: Build Kernel and Rootfs
     runs-on: ubuntu-24.04
 
     steps:
