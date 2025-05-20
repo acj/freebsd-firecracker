@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: <<~SHELL
       set -e
 
-      pkg install -y git sudo
+      pkg install -y git sudo llvm18
 
       echo 'vagrant ALL=(ALL) NOPASSWD: ALL' > /usr/local/etc/sudoers.d/vagrant
       pw groupmod wheel -m vagrant
