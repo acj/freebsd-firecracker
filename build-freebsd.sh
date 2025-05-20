@@ -90,7 +90,13 @@ export CXX=clang++
 export CPP=clang-cpp
 export LD=ld.lld
 export PATH="/usr/local/llvm${LLVM_VERSION}/bin:$PATH"
-make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld buildkernel KERNCONF=FIRECRACKER
+
+make -j$(sysctl -n hw.ncpu) -C /usr/src kernel-toolchain KERNCONF=FIRECRACKER
+
+make -j$(sysctl -n hw.ncpu) -C /usr/src buildkernel KERNCONF=FIRECRACKER
+
+make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld KERNCONF=FIRECRACKER
+
 make -C /usr/src/release firecracker DESTDIR=$(pwd)
 
 chown -R vagrant:vagrant $(pwd)
