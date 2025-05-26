@@ -145,42 +145,14 @@ jobs:
         with:
           name: freebsd.id_rsa
           path: freebsd.id_rsa
-  
-  cross:
-    name: Build cross
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@984d158d699777abbaa79de23de3134e60c187fa # stable branch
-
-      - name: Build cross
-        run: |
-          wget -q -O- https://api.github.com/repos/cross-rs/cross/tarball/29798141ea21d1b4d7647c09df6faa5ee66e9594 | tar -xz --strip-components=1
-          cargo build --release
-
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: cross
-          path: target/release/cross
 
   release:
     name: Publish release
-    needs: [cross, firecracker, kernel, ssh-keys]
+    needs: [firecracker, kernel, ssh-keys]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Download cross artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: cross
-          path: cross
-      
       - name: Download firecracker artifact
         uses: actions/download-artifact@v4
         with:
