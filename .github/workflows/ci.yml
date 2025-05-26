@@ -9,8 +9,10 @@ on:
 permissions:
   contents: write
 
+env:
+  FIRECRACKER_VERSION: "1.12.0"
+
 jobs:
-  # https://github.com/firecracker-microvm/firecracker/commit/30af4758dafa7eea89ba5ed7071f28e6c1f11f96
   kernel:
     name: Build Kernel and Rootfs
     runs-on: ubuntu-24.04
@@ -87,45 +89,24 @@ jobs:
           name: freebsd-rootfs.bin.xz
           path: freebsd-rootfs.bin.xz
   
-  # https://github.com/firecracker-microvm/firecracker/blob/feature/pvh/docs/getting-started.md
   firecracker:
-    name: Build Firecracker
+    name: Vendor Firecracker binary
     runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Display CPU info
-        run: lscpu
-
-      - name: Enable KVM for GHA user
-        shell: sudo bash -e {0}
-        run: setfacl -m u:${USER}:rw /dev/kvm
-
-      - name: Check KVM support
+      - name: Download binary
         run: |
-          lsmod | grep kvm
-          [ -r /dev/kvm ] && [ -w /dev/kvm ] && echo "OK" || echo "FAIL"
-      
-      - name: Build Firecracker
-        shell: sudo bash -e {0}
-        run: |
-          git clone --quiet --depth=1 --branch=v1.12.0 https://github.com/firecracker-microvm/firecracker
-          cd firecracker
-
-          tools/devtool checkenv
-
-          tools/devtool -y build --release
-          mv ./build/cargo_target/$(uname -m)-unknown-linux-musl/release/firecracker firecracker
-
-          ./firecracker --version
+          wget -q -O- https://github.com/firecracker-microvm/firecracker/releases/download/v${{ env.FIRECRACKER_VERSION}}/firecracker-v${{ env.FIRECRACKER_VERSION}}-x86_64.tgz | tar zxf -
+          mv release-v${{ env.FIRECRACKER_VERSION}}-x86_64/firecracker-v${{ env.FIRECRACKER_VERSION}}-x86_64 firecracker
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
         with:
           name: firecracker
-          path: firecracker/firecracker
+          path: firecracker
   
   ssh-keys:
     name: Archive SSH keys
