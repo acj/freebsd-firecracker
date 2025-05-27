@@ -170,7 +170,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            cross
             firecracker
             freebsd-kern.bin
             freebsd-rootfs.bin.xz
