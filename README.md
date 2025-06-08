@@ -6,8 +6,6 @@ This repository contains the scripts and patches needed to boot FreeBSD inside o
 
 To bootstrap the kernel and rootfs images, the CI workflow launches a FreeBSD VM using Vagrant and QEMU. We apply a small patch to the kernel to make it bootable on the AMD Epyc CPUs that GitHub Actions uses in its runners. The kernel and rootfs are then copied out of the VM and published as artifacts.
 
-FreeBSD support has not yet been merged into Firecracker (see [this branch](https://github.com/firecracker-microvm/firecracker/tree/feature/pvh)), so we build a custom Firecracker binary that includes those patches.
-
 ## Getting started
 
 If you want to run FreeBSD in GitHub Actions, please have a look at [freebsd-firecracker-action](https://github.com/acj/freebsd-firecracker-action).
@@ -16,7 +14,7 @@ You probably won't need to use this repository directly unless you need to make 
 
 ## Current status
 
-- [X] Supports FreeBSD 14.0-RELEASE
+- [X] Supports FreeBSD 14.3-RELEASE and Firecracker 1.12.0
 - [X] Supports Intel and AMD CPUs
 - [X] Boots \~instantly in GitHub Actions, excluding download and configuration time
 
