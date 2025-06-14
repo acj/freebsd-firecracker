@@ -22,7 +22,6 @@ You probably won't need to use this repository directly unless you need to make 
 
 - FreeBSD 14+ because we need recent Firecracker-related changes
 - rootfs image is 1GB and is the total space available to the VM. growfs is enabled, but I haven't figured out how to trigger it yet.
-- We currently disable TCP segmentation offload (TSO) on the tap interface. This is a workaround for a bug in Firecracker that causes networking to stall after you transfer a frame that's >2KB. In practice throughput is pretty good, but there could be performance issues for some workloads. There is [upstream work](https://github.com/firecracker-microvm/firecracker/issues/3905) in Firecracker that should address this.
 - Does not boot on Intel CPUs with `vcpu_count` >1 but works fine if the VM is configured to use a single vCPU
 
 ## Contributing
