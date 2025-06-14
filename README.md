@@ -21,7 +21,6 @@ You probably won't need to use this repository directly unless you need to make 
 ## Limitations
 
 - FreeBSD 14+ because we need recent Firecracker-related changes
-- rootfs image is 1GB and is the total space available to the VM. growfs is enabled, but I haven't figured out how to trigger it yet.
 - Does not boot on Intel CPUs with `vcpu_count` >1 but works fine if the VM is configured to use a single vCPU
 
 ## Contributing
