@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 env:
-  FIRECRACKER_VERSION: "1.13.0"
+  FIRECRACKER_VERSION: "1.14.0"
 
 jobs:
   kernel:

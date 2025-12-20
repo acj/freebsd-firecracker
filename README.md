@@ -14,7 +14,7 @@ You probably won't need to use this repository directly unless you need to make 
 
 ## Current status
 
-- [X] Supports FreeBSD 14.3-RELEASE and Firecracker 1.13.0
+- [X] Supports FreeBSD 14.3-RELEASE and Firecracker 1.14.0
 - [X] Supports Intel and AMD CPUs
 - [X] Boots \~instantly in GitHub Actions, excluding download and configuration time
 
