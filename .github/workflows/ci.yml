@@ -169,7 +169,7 @@ jobs:
       - uses: marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0 # v1.1.1
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          draft: false
+          draft: true
           prerelease: false
           files: |
             firecracker
