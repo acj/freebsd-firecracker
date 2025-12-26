@@ -24,7 +24,7 @@ Vagrant.configure("2") do |config|
       pw groupmod wheel -m vagrant
 
       # The branch here is actually a tag
-      git clone --depth 1 --branch release/15.0.0 https://git.freebsd.org/src.git /usr/src
+      git clone --depth 1 --branch release/15.0.0-p1 https://git.freebsd.org/src.git /usr/src
 
       cd /usr/src
       patch < /vagrant/freebsd-amd-tsc-init.patch
