@@ -6,8 +6,8 @@ Vagrant.configure("2") do |config|
     config.vm.provider "libvirt" do |qe|
       # https://vagrant-libvirt.github.io/vagrant-libvirt/configuration.html
       qe.driver = "kvm"
-      qe.cpus = 2
-      qe.memory = 8192
+      qe.cpus = 4
+      qe.memory = 13312
     end
 
     config.vm.boot_timeout = 600
