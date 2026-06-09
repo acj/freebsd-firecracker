@@ -26,6 +26,9 @@ jobs:
       - name: Display CPU info
         run: lscpu
 
+      - name: Verify KVM
+        run: test -e /dev/kvm && echo "KVM available" || (echo "NO KVM — build will be emulated!" && exit 1)
+
       - name: Install VM tools
         shell: sudo bash -e {0}
         run: |
@@ -34,7 +37,7 @@ jobs:
 
           sudo apt-get update
           sudo apt-get install -qq -o=Dpkg::Use-Pty=0 moreutils
-          sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant virtualbox qemu-system-x86 libvirt-daemon-system libvirt-dev
+          sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant qemu-system-x86 libvirt-daemon-system libvirt-dev
 
       - name: Clear additional space on runner
         run: |
