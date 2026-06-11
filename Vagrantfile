@@ -8,6 +8,7 @@ Vagrant.configure("2") do |config|
       qe.driver = "kvm"
       qe.cpus = 4
       qe.memory = 13312
+      qe.disk_driver :cache => "unsafe" # avoid unneeded fsync calls
     end
 
     config.vm.boot_timeout = 600
