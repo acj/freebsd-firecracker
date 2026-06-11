@@ -196,9 +196,9 @@ export CPP="${LLVM_BIN_DIR}/clang-cpp"
 export LD="${LLVM_BIN_DIR}/ld.lld"
 export PATH="/usr/local/llvm${LLVM_VERSION}/bin:$PATH"
 
-make -j$(sysctl -n hw.ncpu) -C /usr/src buildworld KERNCONF=FIRECRACKER
+make -j$(($(sysctl -n hw.ncpu) + 2)) -C /usr/src buildworld KERNCONF=FIRECRACKER
 
-make -j$(sysctl -n hw.ncpu) -C /usr/src buildkernel KERNCONF=FIRECRACKER
+make -j$(($(sysctl -n hw.ncpu) + 2)) -C /usr/src buildkernel KERNCONF=FIRECRACKER
 
 make -C /usr/src/release firecracker DESTDIR=$(pwd)
 
