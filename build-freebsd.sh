@@ -2,7 +2,7 @@
 
 set -e
 
-cd /vagrant
+cd /work
 
 cat <<END > /etc/src.conf
 WITHOUT_ACCT=YES
@@ -86,7 +86,7 @@ WITHOUT_WPA_SUPPLICANT_EAPOL=YES
 WITHOUT_ZFS=YES
 END
 
-cat <<'END' > /usr/src/release/Makefile.firecracker
+cat <<'END' > /work/src/release/Makefile.firecracker
 #
 # Makefile for creating FreeBSD/Firecracker artifacts
 #
@@ -173,33 +173,23 @@ firecracker-freebsd-rootfs.bin:
 END
 
 # Without this, we end up at the mountroot prompt when booting the VM
-cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
+cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
 # Skip building kernel modules that we won't use
-cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
+cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
 makeoptions MODULES_OVERRIDE=""
 END
 
 # Disable debug options
-cat <<END >> /usr/src/sys/amd64/conf/FIRECRACKER
+cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
 nomakeoptions DEBUG
 nomakeoptions WITH_CTF
 END
 
-export LLVM_VERSION="19"
-export LLVM_BIN_DIR="/usr/local/llvm${LLVM_VERSION}/bin"
-export CC="${LLVM_BIN_DIR}/clang"
-export CXX="${LLVM_BIN_DIR}/clang++"
-export CPP="${LLVM_BIN_DIR}/clang-cpp"
-export LD="${LLVM_BIN_DIR}/ld.lld"
-export PATH="/usr/local/llvm${LLVM_VERSION}/bin:$PATH"
+make -j$(($(sysctl -n hw.ncpu) + 2)) -C /work/src buildworld KERNCONF=FIRECRACKER
 
-make -j$(($(sysctl -n hw.ncpu) + 2)) -C /usr/src buildworld KERNCONF=FIRECRACKER
+make -j$(($(sysctl -n hw.ncpu) + 2)) -C /work/src buildkernel KERNCONF=FIRECRACKER
 
-make -j$(($(sysctl -n hw.ncpu) + 2)) -C /usr/src buildkernel KERNCONF=FIRECRACKER
-
-make -C /usr/src/release firecracker DESTDIR=$(pwd)
-
-chown -R vagrant:vagrant $(pwd)
+make -C /work/src/release firecracker DESTDIR=$(pwd)

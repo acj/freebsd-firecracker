@@ -13,6 +13,7 @@ permissions:
 
 env:
   FIRECRACKER_VERSION: "1.16.0"
+  FREEBSD_VERSION: "15.0-RELEASE"
 
 jobs:
   kernel:
@@ -26,18 +27,18 @@ jobs:
       - name: Display CPU info
         run: lscpu
 
-      - name: Verify KVM
-        run: test -e /dev/kvm && echo "KVM available" || (echo "NO KVM — build will be emulated!" && exit 1)
+      - name: Enable KVM access
+        # /dev/kvm is root:kvm 0660 on GHA runners, and the runner user isn't in the kvm group
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -w /dev/kvm && echo "KVM is available and writable"
 
       - name: Install VM tools
-        shell: sudo bash -e {0}
         run: |
-          wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-
           sudo apt-get update
-          sudo apt-get install -qq -o=Dpkg::Use-Pty=0 moreutils
-          sudo chronic apt-get install -qq -o=Dpkg::Use-Pty=0 vagrant qemu-system-x86 libvirt-daemon-system libvirt-dev
+          sudo apt-get install -qq -o=Dpkg::Use-Pty=0 qemu-system-x86 qemu-utils cloud-image-utils
 
       - name: Clear additional space on runner
         run: |
@@ -52,35 +53,98 @@ jobs:
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
-      - name: Set up VM
-        shell: sudo bash -e {0}
+      - name: Download FreeBSD VM image
         run: |
-          vagrant plugin install vagrant-libvirt
-          vagrant plugin install vagrant-scp
+          curl -sSL "https://download.freebsd.org/releases/VM-IMAGES/${FREEBSD_VERSION}/amd64/Latest/FreeBSD-${FREEBSD_VERSION}-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz" | xz -d > freebsd.qcow2
 
-          vagrant status
-          vagrant up --no-tty --provider libvirt
+          # Scratch disk for the source tree and build output so that we don't need to resize the official image's root filesystem
+          qemu-img create -f raw work.img 30G
 
-          df -h
-          vagrant ssh fbsd -- du -hs /vagrant
+      - name: Set up VM
+        run: |
+          chmod 600 freebsd.id_rsa
+
+          mkdir -p ~/.ssh
+          cat >> ~/.ssh/config <<EOF
+          Host fbsd
+            HostName localhost
+            Port 2222
+            User root
+            IdentityFile $PWD/freebsd.id_rsa
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            LogLevel ERROR
+          EOF
+
+          # cloud-init runs this (as root) on first boot
+          cat > user-data <<EOF
+          #!/bin/sh
+          mkdir -p /root/.ssh
+          chmod 700 /root/.ssh
+          echo "$(cat freebsd.id_rsa.pub)" > /root/.ssh/authorized_keys
+          chmod 600 /root/.ssh/authorized_keys
+          sed -i '' -e 's/^#PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+          sysrc sshd_enable=YES
+          service sshd restart || service sshd start
+          EOF
+          echo "instance-id: freebsd-builder" > meta-data
+          cloud-localds seed.iso user-data meta-data
+
+          qemu-system-x86_64 \
+            -machine q35,accel=kvm \
+            -cpu host \
+            -smp "$(nproc)" \
+            -m 13312M \
+            -drive file=freebsd.qcow2,if=virtio,format=qcow2,cache=unsafe \
+            -drive file=work.img,if=virtio,format=raw,cache=unsafe \
+            -cdrom seed.iso \
+            -netdev user,id=net0,hostfwd=tcp:127.0.0.1:2222-:22 \
+            -device virtio-net-pci,netdev=net0 \
+            -device virtio-rng-pci \
+            -display none \
+            -daemonize \
+            -serial file:serial.log \
+            -pidfile qemu.pid
+
+          for i in $(seq 1 60); do
+            if ssh -o ConnectTimeout=5 fbsd true 2>/dev/null; then
+              echo "VM is up"
+              break
+            fi
+            if [ "$i" = "60" ]; then
+              echo "VM failed to come up; serial console output follows" >&2
+              cat serial.log >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+          scp setup-vm.sh build-freebsd.sh prepare-rootfs.sh freebsd-amd-tsc-init.patch freebsd-mptables.patch freebsd.id_rsa.pub fbsd:/root/
+          ssh fbsd /root/setup-vm.sh
+          ssh fbsd df -h
 
       - name: Build FreeBSD rootfs and kernel
-        shell: sudo bash -e {0}
         run: |
-          vagrant ssh fbsd -- sudo /vagrant/build-freebsd.sh
-          df -h
+          ssh fbsd /root/build-freebsd.sh
+          ssh fbsd df -h
 
       - name: Prepare rootfs
-        shell: sudo bash -e {0}
         run: |
-          vagrant ssh fbsd -- sudo /vagrant/prepare-rootfs.sh
-          df -h
+          ssh fbsd /root/prepare-rootfs.sh
+          ssh fbsd df -h
 
       - name: Copy kernel artifacts
-        shell: sudo bash -e {0}
         run: |
-          vagrant scp fbsd:/vagrant/freebsd-kern.bin freebsd-kern.bin
-          vagrant scp fbsd:/vagrant/freebsd-rootfs.bin.xz freebsd-rootfs.bin.xz
+          scp fbsd:/work/freebsd-kern.bin freebsd-kern.bin
+          scp fbsd:/work/freebsd-rootfs.bin.xz freebsd-rootfs.bin.xz
+
+      - name: Upload serial console log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-console.log
+          path: serial.log
+          if-no-files-found: ignore
 
       - name: Archive kernel artifact
         uses: actions/upload-artifact@v4
