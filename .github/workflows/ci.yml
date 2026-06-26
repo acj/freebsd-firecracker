@@ -58,7 +58,7 @@ jobs:
           curl -sSL "https://download.freebsd.org/releases/VM-IMAGES/${FREEBSD_VERSION}/amd64/Latest/FreeBSD-${FREEBSD_VERSION}-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz" | xz -d > freebsd.qcow2
 
           # Scratch disk for the source tree and build output so that we don't need to resize the official image's root filesystem
-          qemu-img create -f raw work.img 30G
+          qemu-img create -f raw work.img 5G
 
       - name: Set up VM
         run: |
