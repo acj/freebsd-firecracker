@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Display CPU info
         run: lscpu
@@ -184,20 +184,20 @@ jobs:
 
       - name: Upload serial console log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: serial-console.log
           path: serial.log
           if-no-files-found: ignore
 
       - name: Archive kernel artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: freebsd-kern.bin
           path: freebsd-kern.bin
     
       - name: Archive rootfs artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: freebsd-rootfs.bin.xz
           path: freebsd-rootfs.bin.xz
@@ -208,7 +208,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download binary
         run: |
@@ -216,7 +216,7 @@ jobs:
           mv release-v${{ env.FIRECRACKER_VERSION}}-x86_64/firecracker-v${{ env.FIRECRACKER_VERSION}}-x86_64 firecracker
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: firecracker
           path: firecracker
@@ -226,16 +226,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Archive SSH public key
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: freebsd.id_rsa.pub
           path: freebsd.id_rsa.pub
         
       - name: Archive SSH private key
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: freebsd.id_rsa
           path: freebsd.id_rsa
@@ -248,31 +248,31 @@ jobs:
 
     steps:
       - name: Download firecracker artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: firecracker
           path: firecracker
       
       - name: Download kernel artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: freebsd-kern.bin
           path: freebsd-kern.bin
 
       - name: Download rootfs artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: freebsd-rootfs.bin.xz
           path: freebsd-rootfs.bin.xz
 
       - name: Download SSH public key
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: freebsd.id_rsa.pub
           path: freebsd.id_rsa.pub
 
       - name: Download SSH private key
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: freebsd.id_rsa
           path: freebsd.id_rsa
