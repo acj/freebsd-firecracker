@@ -15,6 +15,11 @@ ls -l $dest_dir
 ASSUME_ALWAYS_YES=YES pkg -c $dest_dir bootstrap -f || true
 ASSUME_ALWAYS_YES=YES pkg -c $dest_dir install -y bash rsync
 
+# Drop the pkg repository catalog and any cached packages
+ASSUME_ALWAYS_YES=YES pkg -c $dest_dir clean -ay
+rm -f $dest_dir/var/cache/pkg/*
+rm -f $dest_dir/var/db/pkg/repo-*.sqlite
+
 # SSH setup. Allow access to root using the key from this repo
 mkdir -p $dest_dir/root/.ssh
 chmod 700 $dest_dir/root/.ssh
