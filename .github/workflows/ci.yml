@@ -138,6 +138,48 @@ jobs:
           scp fbsd:/work/freebsd-kern.bin freebsd-kern.bin
           scp fbsd:/work/freebsd-rootfs.bin.xz freebsd-rootfs.bin.xz
 
+      - name: Serve built artifacts for the boot test
+        run: |
+          set -eux
+          wget -q -O- "https://github.com/firecracker-microvm/firecracker/releases/download/v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-x86_64.tgz" | tar zxf -
+          cp "release-v${FIRECRACKER_VERSION}-x86_64/firecracker-v${FIRECRACKER_VERSION}-x86_64" firecracker
+          nohup python3 -m http.server 8000 >/tmp/httpd.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS "http://127.0.0.1:8000/freebsd-kern.bin" -o /dev/null; then break; fi
+            sleep 1
+          done
+
+      - name: Boot-test with freebsd-firecracker-action
+        uses: acj/freebsd-firecracker-action@v0.10.1
+        with:
+          kernel-url: http://127.0.0.1:8000/freebsd-kern.bin
+          rootfs-url: http://127.0.0.1:8000/freebsd-rootfs.bin.xz
+          firecracker-url: http://127.0.0.1:8000/firecracker
+          ssh-public-key-url: http://127.0.0.1:8000/freebsd.id_rsa.pub
+          ssh-private-key-url: http://127.0.0.1:8000/freebsd.id_rsa
+          checkout: false
+          verbose: true
+          pre-run: ""
+          post-run: ""
+          run-in-vm: |
+            set -eux
+            uname -a
+            bash --version | head -1
+            rsync --version | head -1
+            service -e
+
+            for f in /usr/bin/cc /usr/bin/clang /usr/bin/lldb /usr/include /rescue \
+                     /usr/lib/clang /sbin/zfs /usr/sbin/dtrace /usr/sbin/bhyve \
+                     /sbin/pfctl /sbin/ipfw /sbin/ipf /usr/sbin/ngctl \
+                     /usr/sbin/freebsd-update /usr/sbin/mailwrapper /usr/sbin/sendmail \
+                     /usr/sbin/ntpd /usr/sbin/ppp /usr/sbin/bsnmpd; do
+              if [ -e "$f" ]; then echo "FAIL: $f should have been trimmed" >&2; exit 1; fi
+            done
+            for f in /bin/sh /usr/sbin/sshd /sbin/init /usr/local/bin/bash /usr/local/bin/rsync; do
+              test -e "$f" || { echo "FAIL: $f is missing" >&2; exit 1; }
+            done
+            echo "trim assertions passed"
+
       - name: Upload serial console log
         if: failure()
         uses: actions/upload-artifact@v4
