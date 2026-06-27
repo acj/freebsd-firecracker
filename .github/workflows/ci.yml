@@ -125,7 +125,7 @@ jobs:
 
       - name: Build FreeBSD rootfs and kernel
         run: |
-          ssh fbsd /root/build-freebsd.sh
+          ssh fbsd FREEBSD_VERSION="${FREEBSD_VERSION}" /root/build-freebsd.sh
           ssh fbsd df -h
 
       - name: Prepare rootfs

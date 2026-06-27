@@ -109,7 +109,8 @@ firecracker-freebsd-kern.bin:
 
 FCWDIR=	${.OBJDIR}/${TARGET}/firecracker-world
 FCROOTFSSZ?=	1g
-FREEBSD_DIST_URL?=	https://download.freebsd.org/releases/${TARGET}/${TARGET_ARCH:U${TARGET}}/15.0-RELEASE
+FREEBSD_VERSION?=	15.0-RELEASE
+FREEBSD_DIST_URL?=	https://download.freebsd.org/releases/${TARGET}/${TARGET_ARCH:U${TARGET}}/${FREEBSD_VERSION}
 firecracker-freebsd-rootfs.bin:
 	mkdir -p ${FCWDIR}
 	fetch -o - ${FREEBSD_DIST_URL}/base.txz | tar -C ${FCWDIR} -xpf -
@@ -223,4 +224,4 @@ END
 
 make -j$(($(sysctl -n hw.ncpu) + 2)) -C /work/src buildkernel KERNCONF=FIRECRACKER
 
-make -C /work/src/release firecracker DESTDIR=$(pwd)
+make -C /work/src/release firecracker DESTDIR=$(pwd) FREEBSD_VERSION="${FREEBSD_VERSION}"
