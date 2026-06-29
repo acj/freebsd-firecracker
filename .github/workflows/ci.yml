@@ -19,8 +19,22 @@ env:
 
 jobs:
   kernel:
-    name: Build Kernel and Rootfs
+    name: Build Kernel and Rootfs (${{ matrix.target }})
     runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # amd64 builds natively in the QEMU/KVM FreeBSD VM and is boot-tested
+          # via freebsd-firecracker-action (which needs KVM, available on x86
+          # runners only).
+          - target: amd64
+            boot_test: true
+          # arm64 is cross-built inside the same amd64 VM. GitHub's arm64
+          # runners have no KVM, so it cannot be boot-tested in CI.
+          - target: arm64
+            boot_test: false
 
     steps:
       - name: Checkout repository
@@ -127,35 +141,45 @@ jobs:
 
       - name: Build FreeBSD rootfs and kernel
         run: |
-          ssh fbsd FREEBSD_VERSION="${FREEBSD_VERSION}" /root/build-freebsd.sh
+          ssh fbsd TARGET="${{ matrix.target }}" FREEBSD_VERSION="${FREEBSD_VERSION}" /root/build-freebsd.sh
           ssh fbsd df -h
 
       - name: Prepare rootfs
         run: |
-          ssh fbsd /root/prepare-rootfs.sh
+          ssh fbsd /root/prepare-rootfs.sh "${{ matrix.target }}"
           ssh fbsd df -h
 
-      - name: Copy kernel artifacts
+      - name: Copy kernel and rootfs artifacts
         run: |
-          scp fbsd:/work/freebsd-kern.bin freebsd-kern.bin
-          scp fbsd:/work/freebsd-rootfs.bin.xz freebsd-rootfs.bin.xz
+          set -eux
+          scp "fbsd:/work/freebsd-rootfs-${{ matrix.target }}.bin.xz" "freebsd-rootfs-${{ matrix.target }}.bin.xz"
+          if [ "${{ matrix.target }}" = "arm64" ]; then
+            # Firecracker arm64 needs a PE/arm64 Image; wrap the flat binary the
+            # build produced (see wrap-arm64-pe-image.py for the caveats).
+            scp "fbsd:/work/freebsd-kern-arm64.img" freebsd-kern-arm64.img
+            python3 wrap-arm64-pe-image.py freebsd-kern-arm64.img "freebsd-kern-${{ matrix.target }}.bin"
+          else
+            scp "fbsd:/work/freebsd-kern-${{ matrix.target }}.bin" "freebsd-kern-${{ matrix.target }}.bin"
+          fi
 
       - name: Serve built artifacts for the boot test
+        if: matrix.boot_test
         run: |
           set -eux
           wget -q -O- "https://github.com/firecracker-microvm/firecracker/releases/download/v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-x86_64.tgz" | tar zxf -
           cp "release-v${FIRECRACKER_VERSION}-x86_64/firecracker-v${FIRECRACKER_VERSION}-x86_64" firecracker
           nohup python3 -m http.server 8000 >/tmp/httpd.log 2>&1 &
           for i in $(seq 1 20); do
-            if curl -fsS "http://127.0.0.1:8000/freebsd-kern.bin" -o /dev/null; then break; fi
+            if curl -fsS "http://127.0.0.1:8000/freebsd-kern-${{ matrix.target }}.bin" -o /dev/null; then break; fi
             sleep 1
           done
 
       - name: Boot-test with freebsd-firecracker-action
+        if: matrix.boot_test
         uses: acj/freebsd-firecracker-action@v0.10.1
         with:
-          kernel-url: http://127.0.0.1:8000/freebsd-kern.bin
-          rootfs-url: http://127.0.0.1:8000/freebsd-rootfs.bin.xz
+          kernel-url: http://127.0.0.1:8000/freebsd-kern-${{ matrix.target }}.bin
+          rootfs-url: http://127.0.0.1:8000/freebsd-rootfs-${{ matrix.target }}.bin.xz
           firecracker-url: http://127.0.0.1:8000/firecracker
           ssh-public-key-url: http://127.0.0.1:8000/freebsd.id_rsa.pub
           ssh-private-key-url: http://127.0.0.1:8000/freebsd.id_rsa
@@ -186,25 +210,33 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: serial-console.log
+          name: serial-console-${{ matrix.target }}.log
           path: serial.log
           if-no-files-found: ignore
 
       - name: Archive kernel artifact
         uses: actions/upload-artifact@v7
         with:
-          name: freebsd-kern.bin
-          path: freebsd-kern.bin
-    
+          name: freebsd-kern-${{ matrix.target }}.bin
+          path: freebsd-kern-${{ matrix.target }}.bin
+
       - name: Archive rootfs artifact
         uses: actions/upload-artifact@v7
         with:
-          name: freebsd-rootfs.bin.xz
-          path: freebsd-rootfs.bin.xz
-  
+          name: freebsd-rootfs-${{ matrix.target }}.bin.xz
+          path: freebsd-rootfs-${{ matrix.target }}.bin.xz
+
   firecracker:
-    name: Vendor Firecracker binary
+    name: Vendor Firecracker binary (${{ matrix.target }})
     runs-on: ubuntu-24.04
+
+    strategy:
+      matrix:
+        include:
+          - target: amd64
+            fc_arch: x86_64
+          - target: arm64
+            fc_arch: aarch64
 
     steps:
       - name: Checkout repository
@@ -212,15 +244,15 @@ jobs:
 
       - name: Download binary
         run: |
-          wget -q -O- https://github.com/firecracker-microvm/firecracker/releases/download/v${{ env.FIRECRACKER_VERSION}}/firecracker-v${{ env.FIRECRACKER_VERSION}}-x86_64.tgz | tar zxf -
-          mv release-v${{ env.FIRECRACKER_VERSION}}-x86_64/firecracker-v${{ env.FIRECRACKER_VERSION}}-x86_64 firecracker
+          wget -q -O- "https://github.com/firecracker-microvm/firecracker/releases/download/v${{ env.FIRECRACKER_VERSION}}/firecracker-v${{ env.FIRECRACKER_VERSION}}-${{ matrix.fc_arch }}.tgz" | tar zxf -
+          mv "release-v${{ env.FIRECRACKER_VERSION}}-${{ matrix.fc_arch }}/firecracker-v${{ env.FIRECRACKER_VERSION}}-${{ matrix.fc_arch }}" "firecracker-${{ matrix.target }}"
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: firecracker
-          path: firecracker
-  
+          name: firecracker-${{ matrix.target }}
+          path: firecracker-${{ matrix.target }}
+
   ssh-keys:
     name: Archive SSH keys
     runs-on: ubuntu-24.04
@@ -233,7 +265,7 @@ jobs:
         with:
           name: freebsd.id_rsa.pub
           path: freebsd.id_rsa.pub
-        
+
       - name: Archive SSH private key
         uses: actions/upload-artifact@v7
         with:
@@ -247,35 +279,11 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Download firecracker artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v7
         with:
-          name: firecracker
-          path: firecracker
-      
-      - name: Download kernel artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: freebsd-kern.bin
-          path: freebsd-kern.bin
-
-      - name: Download rootfs artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: freebsd-rootfs.bin.xz
-          path: freebsd-rootfs.bin.xz
-
-      - name: Download SSH public key
-        uses: actions/download-artifact@v7
-        with:
-          name: freebsd.id_rsa.pub
-          path: freebsd.id_rsa.pub
-
-      - name: Download SSH private key
-        uses: actions/download-artifact@v7
-        with:
-          name: freebsd.id_rsa
-          path: freebsd.id_rsa
+          path: dist
+          merge-multiple: true
 
       - uses: marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0 # v1.1.1
         with:
@@ -283,8 +291,11 @@ jobs:
           draft: true
           prerelease: false
           files: |
-            firecracker
-            freebsd-kern.bin
-            freebsd-rootfs.bin.xz
-            freebsd.id_rsa.pub
-            freebsd.id_rsa
+            dist/firecracker-amd64
+            dist/firecracker-arm64
+            dist/freebsd-kern-amd64.bin
+            dist/freebsd-kern-arm64.bin
+            dist/freebsd-rootfs-amd64.bin.xz
+            dist/freebsd-rootfs-arm64.bin.xz
+            dist/freebsd.id_rsa.pub
+            dist/freebsd.id_rsa

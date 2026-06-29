@@ -4,6 +4,25 @@ set -e
 
 cd /work
 
+# Architecture selection. The build host is always amd64 (the official FreeBSD
+# amd64 cloud image running under QEMU/KVM); amd64 builds natively while arm64 is
+# cross-built using the in-base clang/lld toolchain.
+: "${TARGET:=amd64}"
+case "$TARGET" in
+amd64)
+	TARGET_ARCH=amd64
+	KERNCONF_DIR=/work/src/sys/amd64/conf
+	;;
+arm64)
+	TARGET_ARCH=aarch64
+	KERNCONF_DIR=/work/src/sys/arm64/conf
+	;;
+*)
+	echo "Unsupported TARGET: $TARGET (expected amd64 or arm64)" >&2
+	exit 1
+	;;
+esac
+
 cat <<END > /etc/src.conf
 WITHOUT_ACCT=YES
 WITHOUT_ASAN=YES
@@ -104,7 +123,7 @@ firecracker-freebsd-kern.bin:
 .endif
 	mkdir -p ${FCKDIR}
 	${MAKE} -C ${WORLDDIR} DESTDIR=${FCKDIR} \
-	    KERNCONF=FIRECRACKER TARGET=${TARGET} installkernel
+	    KERNCONF=FIRECRACKER TARGET=${TARGET} TARGET_ARCH=${TARGET_ARCH:U${TARGET}} installkernel
 	cp ${FCKDIR}/boot/kernel/kernel ${DESTDIR}/freebsd-kern.bin
 
 FCWDIR=	${.OBJDIR}/${TARGET}/firecracker-world
@@ -206,22 +225,49 @@ firecracker-freebsd-rootfs.bin:
 	    ${DESTDIR}/freebsd-rootfs.bin ${FCWDIR}
 END
 
+# FreeBSD ships an amd64 FIRECRACKER kernel config but not an arm64 one. On
+# arm64 we synthesize a minimal config from GENERIC; Firecracker arm64 exposes
+# virtio-mmio devices, a GICv3, PSCI, and an FDT, all of which GENERIC supports.
+if [ "$TARGET" = "arm64" ] && [ ! -f "${KERNCONF_DIR}/FIRECRACKER" ]; then
+	cat <<'END' > ${KERNCONF_DIR}/FIRECRACKER
+include GENERIC
+ident FIRECRACKER
+END
+fi
+
 # Without this, we end up at the mountroot prompt when booting the VM
-cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
+cat <<END >> ${KERNCONF_DIR}/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
 # Skip building kernel modules that we won't use
-cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
+cat <<END >> ${KERNCONF_DIR}/FIRECRACKER
 makeoptions MODULES_OVERRIDE=""
 END
 
 # Disable debug options
-cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
+cat <<END >> ${KERNCONF_DIR}/FIRECRACKER
 nomakeoptions DEBUG
 nomakeoptions WITH_CTF
 END
 
-make -j$(($(sysctl -n hw.ncpu) + 2)) -C /work/src buildkernel KERNCONF=FIRECRACKER
+make -j$(($(sysctl -n hw.ncpu) + 2)) -C /work/src buildkernel \
+    KERNCONF=FIRECRACKER TARGET="${TARGET}" TARGET_ARCH="${TARGET_ARCH}"
 
-make -C /work/src/release firecracker DESTDIR=$(pwd) FREEBSD_VERSION="${FREEBSD_VERSION}"
+make -C /work/src/release firecracker DESTDIR=$(pwd) \
+    TARGET="${TARGET}" TARGET_ARCH="${TARGET_ARCH}" \
+    FREEBSD_VERSION="${FREEBSD_VERSION}"
+
+# Stage the artifacts under architecture-specific names so the CI workflow can
+# publish both architectures from a single release.
+mv freebsd-rootfs.bin "freebsd-rootfs-${TARGET}.bin"
+
+if [ "$TARGET" = "arm64" ]; then
+	# Firecracker on aarch64 loads a PE/arm64 "Image", not the raw ELF kernel
+	# that the amd64/PVH path consumes. Emit a flat binary here; the CI workflow
+	# wraps it with the arm64 Image header (see wrap-arm64-pe-image.py).
+	objcopy -O binary freebsd-kern.bin "freebsd-kern-${TARGET}.img"
+	mv freebsd-kern.bin "freebsd-kern-${TARGET}.elf"
+else
+	mv freebsd-kern.bin "freebsd-kern-${TARGET}.bin"
+fi
