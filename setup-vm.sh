@@ -2,7 +2,7 @@
 
 set -e
 
-FREEBSD_SRC_TAG="release/15.0.0-p1"
+FREEBSD_SRC_TAG="release/15.1.0"
 
 # Scratch filesystem for the source tree and build output. The second virtio
 # disk is blank, so it needs a filesystem before we can use it.
