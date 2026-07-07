@@ -2,6 +2,26 @@
 
 set -e
 
+# Architecture of the artifacts to produce, using the FreeBSD build system's
+# TARGET/TARGET_ARCH conventions. amd64 (the default) builds natively inside
+# the amd64 build VM. arm64 can be built either natively (e.g. in an aarch64
+# build VM on Apple Silicon) or cross-built from the amd64 build VM in CI --
+# the base system's clang is a cross-compiler, so no extra toolchain is needed.
+TARGET="${TARGET:-amd64}"
+if [ "$TARGET" = "arm64" ]; then
+	TARGET_ARCH="${TARGET_ARCH:-aarch64}"
+else
+	TARGET_ARCH="${TARGET_ARCH:-$TARGET}"
+fi
+
+# Firecracker's aarch64 loader only accepts Linux arm64 "Image"-format kernels
+# (PVH/ELF boot is x86-only), so the arm64 build also produces kernel.bin.
+if [ "$TARGET" = "arm64" ]; then
+	KERNEL_BIN_FLAGS="WITH_KERNEL_BIN=yes"
+else
+	KERNEL_BIN_FLAGS=""
+fi
+
 cd /work
 
 cat <<END > /etc/src.conf
@@ -95,6 +115,16 @@ CLEANDIRS+=	${TARGET}/firecracker-kern ${TARGET}/firecracker-world
 firecracker:	firecracker-freebsd-kern.bin firecracker-freebsd-rootfs.bin
 
 FCKDIR=	${.OBJDIR}/${TARGET}/firecracker-kern
+.if ${TARGET} == "arm64"
+# Firecracker on aarch64 loads Linux arm64 "Image"-format kernels, not ELF.
+# WITH_KERNEL_BIN makes the kernel build emit kernel.bin: the ELF kernel
+# converted with objcopy and prepended with a booti-compatible Image header.
+FCKERNBIN=	kernel.bin
+FCKERNFLAGS=	WITH_KERNEL_BIN=yes
+.else
+FCKERNBIN=	kernel
+FCKERNFLAGS=
+.endif
 firecracker-freebsd-kern.bin:
 .if !defined(DESTDIR) || !exists(${DESTDIR})
 	@echo "--------------------------------------------------------------"
@@ -104,8 +134,9 @@ firecracker-freebsd-kern.bin:
 .endif
 	mkdir -p ${FCKDIR}
 	${MAKE} -C ${WORLDDIR} DESTDIR=${FCKDIR} \
-	    KERNCONF=FIRECRACKER TARGET=${TARGET} installkernel
-	cp ${FCKDIR}/boot/kernel/kernel ${DESTDIR}/freebsd-kern.bin
+	    KERNCONF=FIRECRACKER TARGET=${TARGET} TARGET_ARCH=${TARGET_ARCH:U${TARGET}} \
+	    ${FCKERNFLAGS} installkernel
+	cp ${FCKDIR}/boot/kernel/${FCKERNBIN} ${DESTDIR}/freebsd-kern.bin
 
 FCWDIR=	${.OBJDIR}/${TARGET}/firecracker-world
 FCROOTFSSZ?=	1g
@@ -206,22 +237,60 @@ firecracker-freebsd-rootfs.bin:
 	    ${DESTDIR}/freebsd-rootfs.bin ${FCWDIR}
 END
 
-# Without this, we end up at the mountroot prompt when booting the VM
-cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
+if [ "$TARGET" = "amd64" ]; then
+	# Without this, we end up at the mountroot prompt when booting the VM
+	cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
 options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 END
 
-# Skip building kernel modules that we won't use
-cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
+	# Skip building kernel modules that we won't use
+	cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
 makeoptions MODULES_OVERRIDE=""
 END
 
-# Disable debug options
-cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
+	# Disable debug options
+	cat <<END >> /work/src/sys/amd64/conf/FIRECRACKER
 nomakeoptions DEBUG
 nomakeoptions WITH_CTF
 END
+else
+	# There is no FIRECRACKER kernel config for arm64 upstream (yet), so we
+	# provide one. GENERIC already contains everything Firecracker's aarch64
+	# boot protocol needs: LINUX_BOOT_ABI (via std.arm64) accepts the FDT
+	# pointer that Firecracker passes in x0, and the virtio-mmio, GICv3,
+	# PSCI, and ns16550 UART drivers match the devices in Firecracker's
+	# generated device tree.
+	cat <<END > /work/src/sys/arm64/conf/FIRECRACKER
+include GENERIC
+ident	FIRECRACKER
 
-make -j$(($(sysctl -n hw.ncpu) + 2)) -C /work/src buildkernel KERNCONF=FIRECRACKER
+# Firecracker has no boot loader, so tell the kernel where root lives.
+# Without this, we end up at the mountroot prompt when booting the VM
+options ROOTDEVNAME=\"ufs:/dev/vtbd0\"
 
-make -C /work/src/release firecracker DESTDIR=$(pwd) FREEBSD_VERSION="${FREEBSD_VERSION}"
+# Skip building kernel modules that we won't use
+makeoptions MODULES_OVERRIDE=""
+
+# Disable debug options
+nomakeoptions DEBUG
+nomakeoptions WITH_CTF
+END
+fi
+
+NCPU=$(($(sysctl -n hw.ncpu) + 2))
+
+# When cross-building (e.g. arm64 artifacts from the amd64 build VM), build
+# the bootstrap tools for the target first. The compiler itself comes from
+# the base system (WITHOUT_CROSS_COMPILER in src.conf); base clang/lld can
+# target all supported architectures.
+if [ "$TARGET_ARCH" != "$(uname -p)" ]; then
+	make -j$NCPU -C /work/src kernel-toolchain \
+	    TARGET="$TARGET" TARGET_ARCH="$TARGET_ARCH"
+fi
+
+make -j$NCPU -C /work/src buildkernel KERNCONF=FIRECRACKER \
+    TARGET="$TARGET" TARGET_ARCH="$TARGET_ARCH" $KERNEL_BIN_FLAGS
+
+make -C /work/src/release firecracker DESTDIR=$(pwd) \
+    FREEBSD_VERSION="${FREEBSD_VERSION}" \
+    TARGET="$TARGET" TARGET_ARCH="$TARGET_ARCH"

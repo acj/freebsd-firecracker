@@ -2,6 +2,9 @@
 
 set -e
 
+TARGET="${TARGET:-amd64}"
+FREEBSD_VERSION="${FREEBSD_VERSION:-15.0-RELEASE}"
+
 cd /work
 
 dest_dir="/mnt"
@@ -11,12 +14,24 @@ mount -t ufs /dev/md0 $dest_dir
 echo "Contents:"
 ls -l $dest_dir
 
+if [ "$TARGET" = "amd64" ]; then
+	# Native rootfs: run the target's own pkg inside a chroot
+	PKG="pkg -c $dest_dir"
+else
+	# arm64 rootfs: when we're cross-building from the amd64 build VM we
+	# can't chroot into aarch64 binaries, so drive the host's pkg with
+	# --rootdir and an ABI override instead. This also works when the
+	# build VM is native aarch64.
+	abi_major="${FREEBSD_VERSION%%.*}"
+	PKG="pkg --rootdir $dest_dir -o ABI=FreeBSD:${abi_major}:aarch64 -o IGNORE_OSVERSION=yes"
+fi
+
 # Install basic packages
-ASSUME_ALWAYS_YES=YES pkg -c $dest_dir bootstrap -f || true
-ASSUME_ALWAYS_YES=YES pkg -c $dest_dir install -y bash rsync
+ASSUME_ALWAYS_YES=YES $PKG bootstrap -f || true
+ASSUME_ALWAYS_YES=YES $PKG install -y bash rsync
 
 # Drop the pkg repository catalog and any cached packages
-ASSUME_ALWAYS_YES=YES pkg -c $dest_dir clean -ay
+ASSUME_ALWAYS_YES=YES $PKG clean -ay
 rm -f $dest_dir/var/cache/pkg/*
 rm -f $dest_dir/var/db/pkg/repo-*.sqlite
 
