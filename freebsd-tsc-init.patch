@@ -8,8 +8,10 @@ by setting tsc_is_invariant for KVM guests, which allows DELAY() to use the hype
 Second, on AMD, there is no CPUID leaf and no frequency in the brand string, so TSC frequency is
 left 0 and causes a kernel panic. This is resolved by reading the TSC frequency from the
 machdep.tsc_freq loader tunable passed on the kernel command line, marking it as exact so later
-calibration does not override it. If it is absent, a nonzero dummy is kept so that single-vCPU
-guests still boot.
+calibration does not override it. If the tunable is absent, a fake but realistic bootstrap
+frequency is set so that DELAY() over-estimates rather than under-estimates during AP startup. If
+we use too low of a value, DELAY() returns early and turns AP bring-up into a race that can panic
+with "AP #N (PHY# N) failed!").
 
 Partial upstream fix: https://github.com/firecracker-microvm/firecracker/pull/3953
 
@@ -18,7 +20,7 @@ Partial upstream fix: https://github.com/firecracker-microvm/firecracker/pull/39
 @@ -360,6 +360,9 @@
  		break;
  	}
- 
+
 +	if (vm_guest == VM_GUEST_KVM && tsc_is_invariant == 0)
 +		tsc_is_invariant = 1;
 +
@@ -33,7 +35,7 @@ Partial upstream fix: https://github.com/firecracker-microvm/firecracker/pull/39
 +
  	if (tsc_freq != 0)
  		return;
- 
+
 @@ -414,6 +431,16 @@
  				printf(
  		    "Early TSC frequency %juHz derived from brand string\n",
@@ -47,7 +49,7 @@ Partial upstream fix: https://github.com/firecracker-microvm/firecracker/pull/39
 +			    (uintmax_t)tsc_freq);
 +		} else if (vm_guest == VM_GUEST_KVM) {
 +			printf("Enabling workaround for Firecracker TSC initialization\n");
-+			tsc_freq = 1;
++			tsc_freq = 4000000000ULL;
  		} else {
  			tsc_disabled = 1;
  		}
