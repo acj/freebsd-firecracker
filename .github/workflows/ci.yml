@@ -152,7 +152,7 @@ jobs:
           done
 
       - name: Boot-test with freebsd-firecracker-action
-        uses: acj/freebsd-firecracker-action@v0.10.1
+        uses: acj/freebsd-firecracker-action@v0.10.2
         with:
           kernel-url: http://127.0.0.1:8000/freebsd-kern.bin
           rootfs-url: http://127.0.0.1:8000/freebsd-rootfs.bin.xz
