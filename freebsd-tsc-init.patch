@@ -1,0 +1,53 @@
+This patch is a workaround for two related problems when running under Firecracker that prevent
+multiple vCPUs from being brought up.
+
+First, FIRECRACKER kernel config disables TSC calibration and does not attach and program an
+i8254 PIT as a backup, so it's not able to determine TSC frequency on some hosts. This is resolved
+by setting tsc_is_invariant for KVM guests, which allows DELAY() to use the hypervisor's TSC.
+
+Second, on AMD, there is no CPUID leaf and no frequency in the brand string, so TSC frequency is
+left 0 and causes a kernel panic. This is resolved by reading the TSC frequency from the
+machdep.tsc_freq loader tunable passed on the kernel command line, marking it as exact so later
+calibration does not override it. If it is absent, a nonzero dummy is kept so that single-vCPU
+guests still boot.
+
+Partial upstream fix: https://github.com/firecracker-microvm/firecracker/pull/3953
+
+--- sys/x86/x86/tsc.c
++++ sys/x86/x86/tsc.c
+@@ -360,6 +360,9 @@
+ 		break;
+ 	}
+ 
++	if (vm_guest == VM_GUEST_KVM && tsc_is_invariant == 0)
++		tsc_is_invariant = 1;
++
+ 	if (tsc_freq_cpuid_vm()) {
+ 		if (bootverbose)
+ 			printf(
+@@ -400,6 +415,8 @@
+ static void
+ probe_tsc_freq_late(void)
+ {
++	quad_t tsc_tunable;
++
+ 	if (tsc_freq != 0)
+ 		return;
+ 
+@@ -414,6 +431,16 @@
+ 				printf(
+ 		    "Early TSC frequency %juHz derived from brand string\n",
+ 				    (uintmax_t)tsc_freq);
++		} else if (vm_guest == VM_GUEST_KVM &&
++		    getenv_quad("machdep.tsc_freq", &tsc_tunable) != 0 &&
++		    tsc_tunable >= 100000000 && tsc_tunable <= 100000000000) {
++			tsc_freq = tsc_tunable;
++			tsc_early_calib_exact = 1;
++			printf("Firecracker host TSC frequency %juHz\n",
++			    (uintmax_t)tsc_freq);
++		} else if (vm_guest == VM_GUEST_KVM) {
++			printf("Enabling workaround for Firecracker TSC initialization\n");
++			tsc_freq = 1;
+ 		} else {
+ 			tsc_disabled = 1;
+ 		}

@@ -121,7 +121,7 @@ jobs:
             sleep 5
           done
 
-          scp setup-vm.sh build-freebsd.sh prepare-rootfs.sh freebsd-amd-tsc-init.patch freebsd-mptables.patch freebsd.id_rsa.pub fbsd:/root/
+          scp setup-vm.sh build-freebsd.sh prepare-rootfs.sh freebsd-tsc-init.patch freebsd-mptables.patch freebsd.id_rsa.pub fbsd:/root/
           ssh fbsd /root/setup-vm.sh
           ssh fbsd df -h
 

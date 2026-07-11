@@ -4,7 +4,7 @@ This repository contains the scripts and patches needed to boot FreeBSD inside o
 
 ## How it works
 
-To bootstrap the kernel and rootfs images, the CI workflow boots the official FreeBSD VM image directly with QEMU/KVM. We apply a small patch to the kernel to make it bootable on the AMD Epyc CPUs that GitHub Actions uses in its runners. The kernel and rootfs are then copied out of the VM and published as artifacts.
+To bootstrap the kernel and rootfs images, the CI workflow boots the official FreeBSD VM image directly with QEMU/KVM. We apply small kernel patches to make it bootable in Firecracker on the CPUs that GitHub Actions uses in its runners. The kernel and rootfs are then copied out of the VM and published as artifacts.
 
 ## Getting started
 
@@ -21,7 +21,6 @@ You probably won't need to use this repository directly unless you need to make 
 ## Limitations
 
 - FreeBSD 14+ because we need recent Firecracker-related changes
-- Does not boot on Intel CPUs with `vcpu_count` >1 but works fine if the VM is configured to use a single vCPU
 
 ## Contributing
 

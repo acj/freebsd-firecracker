@@ -15,5 +15,5 @@ mkdir -p /work/src
 fetch -qo - "https://github.com/freebsd/freebsd-src/archive/refs/tags/${FREEBSD_SRC_TAG}.tar.gz" | tar -C /work/src --strip-components 1 -xzf -
 
 cd /work/src
-patch -s < /root/freebsd-amd-tsc-init.patch
+patch -s < /root/freebsd-tsc-init.patch
 patch -s < /root/freebsd-mptables.patch
