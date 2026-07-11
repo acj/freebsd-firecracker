@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  FIRECRACKER_VERSION: "1.16.0"
+  FIRECRACKER_VERSION: "1.16.1"
   FREEBSD_VERSION: "15.0-RELEASE"
 
 jobs:
