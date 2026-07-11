@@ -21,6 +21,7 @@ You probably won't need to use this repository directly unless you need to make 
 ## Limitations
 
 - FreeBSD 14+ because we need recent Firecracker-related changes
+- x86_64 only due to the need for PVH direct boot and lack of nested virtualization support in the GitHub Actions runners (an Azure limitation)
 
 ## Contributing
 
