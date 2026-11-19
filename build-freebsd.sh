@@ -195,6 +195,7 @@ firecracker-freebsd-rootfs.bin:
 	echo 'sshd_rsa_enable="NO"' >> ${FCWDIR}/etc/rc.conf
 	echo 'growfs_enable="YES"' >> ${FCWDIR}/etc/rc.conf
 	echo 'nameserver 8.8.8.8' >> ${FCWDIR}/etc/resolv.conf
+	echo 'UseDNS no' >> ${FCWDIR}/etc/ssh/sshd_config
 	sed -i '' -e '/periodic/s/^/#/' ${FCWDIR}/etc/crontab
 	pw -R ${FCWDIR} groupadd freebsd -g 1001
 	mkdir -p ${FCWDIR}/home/freebsd
