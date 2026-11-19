@@ -32,8 +32,15 @@ jobs:
       - name: Enable KVM access
         # /dev/kvm is root:kvm 0660 on GHA runners, and the runner user isn't in the kvm group
         run: |
-          sudo chmod 0666 /dev/kvm
-          test -w /dev/kvm && echo "KVM is available and writable"
+          if sudo chmod 0666 /dev/kvm && test -w /dev/kvm; then
+            echo "KVM is available and writable"
+          else
+            echo "::error::KVM is not available on this runner"
+            ls -l /dev/kvm || true
+            lsmod | grep kvm || echo "no kvm modules loaded"
+            sudo dmesg | grep -i -E 'kvm|svm|vmx' || echo "no kvm-related dmesg lines"
+            exit 1
+          fi
 
       - name: Install VM tools
         run: |
